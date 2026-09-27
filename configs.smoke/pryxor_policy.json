@@ -1,0 +1,19 @@
+{
+  "sector": "finance",
+  "hold_ttl_minutes": 60,
+  "secrets": { "provider": "env" },
+  "allowed_actions": {
+    "agent_smoke_01": ["send_payment"]
+  },
+  "sectors": {
+    "finance": {
+      "max_single_transaction": 500.0,
+      "velocity_window_hours": 24,
+      "velocity_limit": 10000.0,
+      "allowed_recipients": ["Fournisseur_A"]
+    }
+  },
+  "executors": {
+    "send_payment": { "type": "mock" }
+  }
+}

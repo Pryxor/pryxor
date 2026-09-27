@@ -1,0 +1,43 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Tests & dev
+tests/
+test*.py
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Docs & meta
+README.md
+ROADMAP.md
+QUICKSTART.md
+CONTRIBUTING.md
+SECURITY.md
+LICENSE
+docs/
+
+# Local env & IDE
+.env
+.env.local
+.vscode/
+.idea/
+*.swp
+.DS_Store

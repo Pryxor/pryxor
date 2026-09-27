@@ -1,0 +1,21 @@
+{
+  "type": "declarative",
+  "description": "Example rules-only sector: no Python needed. Rename this file to your domain (e.g. configs/sectors/hr.json), then point a tool's executor at it with \"sector\": \"hr\".",
+  "rules": [
+    {
+      "name": "block-destructive-tools",
+      "when": { "tool_in": ["drop_table", "delete_database", "wipe_bucket"] },
+      "then": { "block": "DESTRUCTIVE_TOOL", "message": "Destructive tools are never allowed." }
+    },
+    {
+      "name": "hold-large-transfers",
+      "when": { "tool": "send_payment", "amount_gt": 1000 },
+      "then": { "hold": "ABOVE_AUTO_LIMIT", "message": "Above the automatic limit; needs a human." }
+    },
+    {
+      "name": "hold-external-recipients",
+      "when": { "recipient_not_in": ["Compte_Trusted", "Fournisseur_A"] },
+      "then": { "hold": "RECIPIENT_NOT_WHITELISTED", "message": "Recipient is not allowlisted." }
+    }
+  ]
+}

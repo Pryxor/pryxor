@@ -1,0 +1,47 @@
+# Secrets & local state
+.env
+.env.local
+config/
+configs/
+data/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+docker-logs.txt
+pryxor_state.sqlite3
+requirements-dev.txt
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+scripts/__pycache__
+sdk/.ruff_cache
+tests/__pycache__
+sectors/__pycache__
+developers
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Local debug artefacts (do not commit)
+*.log
+.coverage
+_pytest*
+pytest_*
+_full.*
+_final.*
+*.sqlite3-shm
+*.sqlite3-wal

@@ -1,0 +1,36 @@
+{
+  "type": "http",
+  "method": "POST",
+  "url": "https://httpbin.org/post",
+  "sector": "finance",
+  "description": "Send a payment to a recipient (demo executor — replace the URL with your real payment API).",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "amount": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "recipient": {
+        "type": "string"
+      },
+      "reference": {
+        "type": "string",
+        "maxLength": 140
+      }
+    },
+    "required": [
+      "amount",
+      "recipient"
+    ],
+    "additionalProperties": false
+  },
+  "auth": {
+    "type": "bearer",
+    "secret_ref": "BANK_API_TOKEN"
+  },
+  "body": {
+    "amount": "{{ parameters.amount }}",
+    "recipient": "{{ parameters.recipient }}"
+  }
+}

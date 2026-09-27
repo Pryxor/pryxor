@@ -1,0 +1,9 @@
+{
+  "type": "code",
+  "max_recipients": 3,
+  "allowed_domains": [
+    "company.com",
+    "internal.org"
+  ],
+  "blocked_subject_pattern": "(?i)password|secret|key|confidential"
+}

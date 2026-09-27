@@ -1,0 +1,27 @@
+{
+  "type": "http",
+  "method": "POST",
+  "url": "https://httpbin.org/post",
+  "auth": {
+    "type": "bearer",
+    "secret_ref": "CLOUD_API_TOKEN"
+  },
+  "sector": "cloud",
+  "description": "Terminate a cloud instance (destructive — held for review).",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "resource_id": { "type": "string" },
+      "region": { "type": "string" },
+      "environment": { "type": "string", "enum": ["dev", "staging", "production"] }
+    },
+    "required": ["resource_id"],
+    "additionalProperties": false
+  },
+  "body": {
+    "action": "{{ tool_name }}",
+    "region": "{{ parameters.region }}",
+    "instance_type": "{{ parameters.instance_type }}",
+    "resource_id": "{{ parameters.resource_id }}"
+  }
+}

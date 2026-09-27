@@ -1,0 +1,15 @@
+{
+  "type": "code",
+  "allowed_regions": [
+    "eu-west-1",
+    "eu-west-3"
+  ],
+  "allowed_instance_types": [
+    "t3.micro",
+    "t3.small",
+    "t3.medium"
+  ],
+  "max_estimated_cost_per_hour": 5.0,
+  "velocity_window_hours": 1,
+  "velocity_limit": 100.0
+}

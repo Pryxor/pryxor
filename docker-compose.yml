@@ -1,0 +1,82 @@
+# Pryxor — docker-compose for a self-hosted single-node deployment.
+#
+# Quick start:
+#   1. cp .env.example .env            # then edit .env with your secrets
+#   2. cp -r configs.example configs   # then edit configs/pryxor.json
+#   3. docker compose up -d
+#   4. docker compose exec pryxor python admin_cli.py register my_agent
+#
+# See README.md for details.
+
+services:
+  pryxor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pryxor:latest
+    container_name: pryxor
+    restart: unless-stopped
+
+    # --- Ports ------------------------------------------------------
+    # Bind to localhost by default. Put a reverse proxy (nginx, traefik,
+    # caddy) in front for TLS and public exposure.
+    # /metrics is served on the same port (8000); no extra mapping needed.
+    ports:
+      - "127.0.0.1:8000:8000"
+
+    # --- Secrets & config ------------------------------------------
+    # All secrets referenced via `secret_ref` in executors MUST be set
+    # here. Prefer `env_file` with a .env that is chmod 600.
+    env_file:
+      - .env
+
+    environment:
+      PRYXOR_STATE_PATH: /data/pryxor_state.sqlite3
+      # Folder-based config (configs/ → one file per concern).
+      PRYXOR_CONFIG_DIR: /configs
+      PRYXOR_LOG_LEVEL: INFO
+    # --- Volumes ----------------------------------------------------
+    # /configs is read-only: edit configs on the host, then restart.
+    # /data is a named volume: Docker manages permissions for uid 10001.
+    volumes:
+      - ./configs:/configs:ro
+      - pryxor_data:/data
+
+    # --- Healthcheck -------------------------------------------------
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/v1/health', timeout=3).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+    # --- Logging ----------------------------------------------------
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    # --- Security hardening -----------------------------------------
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: false    # SQLite WAL needs to write to /data
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+
+    # --- Resource limits (adjust to your workload) ------------------
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+volumes:
+  pryxor_data:
+    driver: local

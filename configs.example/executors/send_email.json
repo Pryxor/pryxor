@@ -1,0 +1,22 @@
+{
+  "type": "http",
+  "method": "POST",
+  "url": "https://httpbin.org/post",
+  "sector": "email",
+  "description": "Send an email through the configured provider.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "to": { "type": "string", "format": "email" },
+      "subject": { "type": "string", "maxLength": 200 },
+      "body": { "type": "string", "maxLength": 10000 }
+    },
+    "required": ["to", "subject", "body"],
+    "additionalProperties": false
+  },
+  "body": {
+    "to": "{{ parameters.to }}",
+    "subject": "{{ parameters.subject }}",
+    "body": "{{ parameters.body }}"
+  }
+}

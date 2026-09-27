@@ -1,0 +1,14 @@
+{
+  "routes": {
+    "slack_test": {
+      "type": "slack",
+      "webhook_url_ref": "SLACK_TEST_WEBHOOK",
+      "events": [
+        "hold.created",
+        "hold.approved",
+        "hold.rejected"
+      ],
+      "mention": "<!channel>"
+    }
+  }
+}

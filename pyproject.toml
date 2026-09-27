@@ -1,0 +1,126 @@
+[project]
+name = "pryxor"
+version = "0.1.0"
+description = "Runtime security for AI agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# =====================================================================
+# ruff — linter + formatter
+# =====================================================================
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "sdk/",
+    "adapters/",       # exemptés pour l'instant, on les nettoiera plus tard
+    "examples/",
+]
+
+[tool.ruff.lint]
+# Règles de départ, pragmatiques :
+#   E = pycodestyle errors
+#   F = pyflakes (imports inutilisés, variables non définies...)
+#   I = isort (ordre des imports)
+#   W = pycodestyle warnings
+#   B = flake8-bugbear (bugs communs)
+select = ["E", "F", "I", "W", "B"]
+# Règles ignorées volontairement :
+ignore = [
+    "E501",  # ligne trop longue (géré par line-length + formatter)
+    "B008",  # FastAPI utilise Depends() dans les defaults, c'est standard
+    "E402",  # imports en milieu de fichier (nécessaire pour load_dotenv)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F401", "F811", "F841", "E731"]  # unused imports/vars & lambda fixtures OK in tests
+"scripts/*" = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pryxor", "sectors", "adapters"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+# =====================================================================
+# mypy — type checker
+# =====================================================================
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = false
+warn_unused_configs = true
+ignore_missing_imports = true       # on ne type pas requests, fastapi, etc.
+allow_untyped_defs = true           # on tolère les fonctions non typées pour l'instant
+allow_incomplete_defs = true
+check_untyped_defs = false          # trop strict pour la V1
+disallow_untyped_defs = false
+no_implicit_optional = false
+show_error_codes = true
+
+# Modules ignorés (trop verbeux pour l'instant)
+[[tool.mypy.overrides]]
+module = [
+    "prometheus_client.*",
+    "langchain_core.*",
+    "agents.*",
+    "crewai.*",
+    "dotenv.*",
+]
+ignore_missing_imports = true
+
+# Exclusions
+exclude = [
+    "sdk/",
+    "adapters/",
+    "examples/",
+    "scripts/",
+]
+
+# =====================================================================
+# pytest — config
+# =====================================================================
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q"
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning:starlette.*",
+    "ignore::DeprecationWarning:anyio.*",
+]
+
+# =====================================================================
+# coverage
+# =====================================================================
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "tests/*",
+    "sdk/*",
+    "adapters/*",
+    "examples/*",
+    "scripts/*",
+    "venv/*",
+    ".venv/*",
+    "*/site-packages/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

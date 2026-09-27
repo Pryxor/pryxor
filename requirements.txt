@@ -1,0 +1,25 @@
+# ---------------------------------------------------------------------------
+# Runtime dependencies for the Pryxor proxy/engine.
+# ---------------------------------------------------------------------------
+fastapi>=0.110,<1.0
+# Starlette 1.x removed parameters FastAPI still passes (e.g. Router(on_startup=...)),
+# so pin below 1.0 until FastAPI supports it.
+starlette>=0.46.0,<1.0
+uvicorn[standard]>=0.29
+pydantic>=2.6,<3.0
+requests>=2.31
+httpx>=0.27
+python-dotenv>=1.0
+prometheus-client>=0.20
+
+# ---------------------------------------------------------------------------
+# Test & dev dependencies.
+# ---------------------------------------------------------------------------
+pytest>=8.0
+
+# ---------------------------------------------------------------------------
+# Optional integrations (install as needed):
+#   pip install "pryxor[langchain]"      # langchain-core>=0.3
+#   pip install "pryxor[crewai]"         # crewai>=0.60
+#   pip install "pryxor[openai-agents]"  # openai-agents>=0.1
+# ---------------------------------------------------------------------------

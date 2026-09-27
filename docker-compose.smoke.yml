@@ -1,0 +1,20 @@
+# Smoke test overlay — port 8001, volume isolé, executor mock.
+# Utiliser avec : docker compose -f docker-compose.yml -f docker-compose.smoke.yml ...
+
+services:
+  pryxor:
+    container_name: pryxor-smoke
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - ./configs.smoke:/configs:ro
+      - pryxor_smoke_data:/data
+    environment:
+      PRYXOR_LOG_LEVEL: WARNING
+      PRYXOR_CONFIG_DIR: /configs
+
+      # Aucun secret requis : l'executor est "mock".
+
+volumes:
+  pryxor_smoke_data:
+    driver: local

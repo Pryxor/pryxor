@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pryxor"
+version = "0.1.0"
+description = "Runtime security for AI agents — client, framework adapters, and MCP"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Pryxor Contributors" }]
+keywords = ["ai", "agents", "security", "runtime", "guardrails", "mcp"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries",
+]
+# The core depends only on `requests`. Framework support is opt-in via extras.
+dependencies = ["requests>=2.31"]
+
+[project.optional-dependencies]
+langchain = ["langchain-core>=0.3"]
+crewai = ["crewai>=0.60"]
+openai-agents = ["openai-agents>=0.1"]
+mcp = ["python-dotenv>=1.0"]
+all = [
+    "langchain-core>=0.3",
+    "crewai>=0.60",
+    "openai-agents>=0.1",
+    "python-dotenv>=1.0",
+]
+
+[project.scripts]
+pryxor-mcp = "pryxor.mcp.proxy:main"
+pryxor-mcp-server = "pryxor.mcp.server:main"
+
+[project.urls]
+Homepage = "https://github.com/Pryxor/pryxor"
+Repository = "https://github.com/Pryxor/pryxor"
+Issues = "https://github.com/Pryxor/pryxor/issues"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# =====================================================================
+# ruff — linter (mirrors the repo policy)
+# =====================================================================
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "B"]
+ignore = ["E501", "E402"]
+
+[tool.ruff.lint.per-file-ignores]
+# Adapters carry intentional patterns: a lambda `Field` fallback when the
+# framework is absent, and callback imports that are only meaningful to
+# type-checkers. Same leniency as the repo root config.
+"src/pryxor/adapters/*" = ["E731", "F401"]

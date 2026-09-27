@@ -1,0 +1,114 @@
+# Pryxor — continuous integration.
+#
+# Runs on every push to main and every pull request.
+# The goal is not coverage for its own sake: it is that a regression
+# in the security-critical paths cannot land silently.
+#
+# What it checks:
+#   1. The test suite passes on Python 3.10, 3.11 and 3.12.
+#   2. The linter and formatter are clean (ruff).
+#   3. The adapter imports work when the optional frameworks are absent.
+#
+# What it does NOT check (yet):
+#   - The framework adapters against real framework versions.
+#   - The MCP server against real MCP clients.
+#   - Windows-specific behavior.
+# These are roadmap items; see KNOWN_LIMITATIONS.md.
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# Cancel a running workflow if a new push arrives on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run the test suite
+        run: |
+          python -m pytest tests/ -q
+
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ruff
+        run: pip install "ruff>=0.6"
+
+      - name: Run ruff check
+        run: ruff check .
+
+      - name: Run ruff format check
+        run: ruff format --check .
+
+  import-smoke:
+    name: Import smoke test (no optional frameworks)
+    runs-on: ubuntu-latest
+    # This job verifies a specific property: importing the SDK never
+    # fails because an optional framework is missing. The adapters use
+    # a guarded import and must not break the package when langchain,
+    # crewai, or agents are absent.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the SDK only
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e sdk/
+
+      - name: Import the client and every adapter module
+        run: |
+          python -c "import pryxor; print('client ok:', pryxor.__version__)"
+          python -c "import pryxor.adapters.langchain"
+          python -c "import pryxor.adapters.crewai"
+          python -c "import pryxor.adapters.openai_agents"
+          python -c "import pryxor.mcp.proxy"
+          python -c "import pryxor.mcp.server"

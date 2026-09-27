@@ -1,0 +1,47 @@
+# Production overlay — apply on top of docker-compose.yml.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  pryxor:
+    # No port publishing — the reverse proxy talks to pryxor over the
+    # internal Docker network.
+    ports: []
+    expose:
+      - "8000"
+
+    environment:
+      PRYXOR_LOG_LEVEL: WARNING
+
+    # Stricter resource caps for prod.
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 1G
+
+    # Drop all caps (already in base) + read-only rootfs.
+    # Python may still need /tmp, which is tmpfs.
+    read_only: true
+
+    # Make sure the process is restarted on OOM, not looped forever.
+    restart: on-failure:5
+
+  # Optional: a Caddy reverse proxy for TLS termination.
+  # Uncomment to enable. Point agents at https://pryxor.internal.
+  #
+  # caddy:
+  #   image: caddy:2-alpine
+  #   restart: unless-stopped
+  #   ports:
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy_data:/data
+  #   networks:
+  #     - default
+
+networks:
+  default:
+    driver: bridge

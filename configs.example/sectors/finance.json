@@ -1,0 +1,10 @@
+{
+  "type": "code",
+  "max_single_transaction": 500.0,
+  "velocity_window_hours": 24,
+  "velocity_limit": 1000.0,
+  "allowed_recipients": [
+    "Fournisseur_A",
+    "Compte_Trusted"
+  ]
+}

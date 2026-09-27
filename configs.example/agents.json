@@ -1,0 +1,7 @@
+{
+  "allowed_actions": {
+    "agent_finance_01": [
+      "send_payment"
+    ]
+  }
+}
