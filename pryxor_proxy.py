@@ -74,24 +74,18 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
                     return JSONResponse(
                         status_code=413,
                         content={
-                            "detail": (
-                                f"Request body too large. Max {MAX_BODY_BYTES} bytes."
-                            )
+                            "detail": (f"Request body too large. Max {MAX_BODY_BYTES} bytes.")
                         },
                     )
             except ValueError:
-                return JSONResponse(
-                    status_code=400, content={"detail": "Invalid Content-Length."}
-                )
+                return JSONResponse(status_code=400, content={"detail": "Invalid Content-Length."})
 
         # Read the body to check the real size (guards against spoofed CL).
         body = await request.body()
         if len(body) > MAX_BODY_BYTES:
             return JSONResponse(
                 status_code=413,
-                content={
-                    "detail": (f"Request body too large. Max {MAX_BODY_BYTES} bytes.")
-                },
+                content={"detail": (f"Request body too large. Max {MAX_BODY_BYTES} bytes.")},
             )
 
         # Re-inject the body so FastAPI can read it.
@@ -219,10 +213,7 @@ async def process_tool_call(
             metrics.record_rate_limit_hit(decision["reason"])
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=(
-                    f"Rate limit exceeded ({decision['reason']}, "
-                    f"limit={decision['limit']})."
-                ),
+                detail=(f"Rate limit exceeded ({decision['reason']}, limit={decision['limit']})."),
                 headers={
                     "Retry-After": str(decision["retry_after"]),
                     "X-RateLimit-Limit": str(decision["limit"]),

@@ -71,7 +71,7 @@ def declarative_engine(tmp_path):
                         },
                         "then": {"hold": "READ_RATE_LIMIT"},
                     },
-                ]
+                ],
             }
         },
     }

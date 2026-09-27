@@ -746,7 +746,6 @@ class PolicyEngine:
                 raise
 
         if default_sector_name not in self._sectors:
-
             # The default sector is mandatory: without it we cannot route calls.
             self._sectors[default_sector_name] = load_sector(
                 default_sector_name, self.policy, self.state_path
@@ -896,7 +895,6 @@ class PolicyEngine:
             else:
                 file_policy = json.loads(self._explicit_policy_path.read_text(encoding="utf-8"))
         else:
-
             # 2. Otherwise, resolve the `configs/` folder.
             file_policy = load_config()
 

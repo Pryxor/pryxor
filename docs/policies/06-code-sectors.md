@@ -28,8 +28,7 @@ class EmailSector(SimpleSector):
     name = "email"
     version = "1.0.0"
 
-    def decide(self, agent_id, tool_name, parameters):
-        ...
+    def decide(self, agent_id, tool_name, parameters): ...
 ```
 
 The engine calls `decide(agent_id, tool_name, parameters)` and expects a
@@ -156,8 +155,7 @@ class FinanceSector(SimpleSector):
             if current + amount > velocity_limit:
                 return Decision.hold(
                     "VELOCITY_LIMIT_EXCEEDED",
-                    f"Cumulative {current + amount}$ > {velocity_limit}$ "
-                    f"over {window_hours}h.",
+                    f"Cumulative {current + amount}$ > {velocity_limit}$ over {window_hours}h.",
                     current_volume=current,
                 )
 
@@ -191,11 +189,10 @@ def record_approved(self, agent_id, tool_name, parameters):
     super().record_approved(agent_id, tool_name, parameters)
     # ... your own bookkeeping ...
 
+
 def on_hold_approved(self, agent_id, tool_name, parameters, *, dedup_key=None):
     # Called when a held call is later approved by a human.
-    super().on_hold_approved(
-        agent_id, tool_name, parameters, dedup_key=dedup_key
-    )
+    super().on_hold_approved(agent_id, tool_name, parameters, dedup_key=dedup_key)
     # ... your own bookkeeping ...
 ```
 

@@ -79,9 +79,7 @@ def _isolate_engine_workers(monkeypatch):
     # Belt-and-braces: if a test reloaded the module, __init__ patching above
     # won't apply to the new class. Neutralise the start method the new class
     # will call, so no worker can start under any code path.
-    monkeypatch.setattr(
-        pryxor_engine.PolicyEngine, "_start_dispatch_worker", lambda self: None
-    )
+    monkeypatch.setattr(pryxor_engine.PolicyEngine, "_start_dispatch_worker", lambda self: None)
 
     # Neutralise the background gauge refresh during tests.
     monkeypatch.setattr(pryxor_engine.PolicyEngine, "_refresh_gauges", lambda self: None)

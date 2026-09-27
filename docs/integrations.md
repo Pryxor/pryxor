@@ -210,7 +210,7 @@ try:
         "pay_invoice",
         {"amount": 100.0, "recipient": "Fournisseur_A"},
     )
-    print("Executed:", result)   # the real API payload returned by the executor
+    print("Executed:", result)  # the real API payload returned by the executor
 
 except PryxorHoldPendingError as e:
     print("Waiting for human approval:", e.action_id)
@@ -323,7 +323,7 @@ tools = [
         pryxor_client=pryxor,
         name="pay_invoice",
         description="Send a payment to a recipient.",
-        args_schema=PaymentArgs,   # optional: a Pydantic model
+        args_schema=PaymentArgs,  # optional: a Pydantic model
     ),
 ]
 ```
@@ -346,8 +346,8 @@ the outcome:
 Two optional flags let the model see the decision instead of crashing:
 
 ```python
-PryxorTool(..., raise_on_block=False)   # returns "[BLOCKED] <reason>"
-PryxorTool(..., raise_on_hold=False)    # returns "[HOLD] action_id=…"
+PryxorTool(..., raise_on_block=False)  # returns "[BLOCKED] <reason>"
+PryxorTool(..., raise_on_hold=False)  # returns "[HOLD] action_id=…"
 ```
 
 This is usually what you want in a reasoning agent: the model can read
@@ -468,9 +468,11 @@ Before:
 ```python
 from agents import FunctionTool
 
+
 async def _invoke(ctx, args_json):
     args = json.loads(args_json)
     return await real_send_email(**args)
+
 
 tools = [
     FunctionTool(

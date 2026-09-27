@@ -19,6 +19,7 @@ from pryxor_auth import AdminRegistry, AgentRegistry
 
 STATE_PATH = os.environ.get("PRYXOR_STATE_PATH", "pryxor_state.sqlite3")
 
+
 def _print_json(data) -> None:
     # stdout only → parseable by jq / python
     print(json.dumps(data, indent=2, ensure_ascii=False))

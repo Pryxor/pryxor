@@ -159,8 +159,7 @@ def load_sector(
 
     if kind != KIND_CODE:
         raise ValueError(
-            f"Sector '{name}' has unknown type '{kind}'. "
-            f"Expected one of: {sorted(VALID_KINDS)}."
+            f"Sector '{name}' has unknown type '{kind}'. Expected one of: {sorted(VALID_KINDS)}."
         )
 
     if name in SECTORS:
@@ -169,7 +168,7 @@ def load_sector(
     available = sorted(SECTORS.keys())
     raise ValueError(
         f"Sector '{name}' is declared as type 'code' but no module defines it. "
-        f"Add sectors/{name}.py, or set \"type\": \"declarative\" with a "
+        f'Add sectors/{name}.py, or set "type": "declarative" with a '
         f"'rules' list. Built-in sectors: {available}."
     )
 
