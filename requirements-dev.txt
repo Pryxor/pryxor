@@ -11,3 +11,16 @@ pytest-cov>=5.0
 
 # Security audit
 pip-audit>=2.7
+-r requirements.txt
+
+# Linting & formatting
+ruff>=0.0.282
+
+# Type checking
+mypy>=1.10
+
+# Testing
+pytest-cov>=5.0
+
+# Security audit
+pip-audit>=2.7

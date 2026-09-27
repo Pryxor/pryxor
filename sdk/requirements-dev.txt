@@ -1,0 +1,11 @@
+# Development & release tooling for the `pryxor` package.
+# Usage:  pip install -r requirements-dev.txt
+
+# Build the wheel + sdist
+build>=1.2
+
+# Upload to PyPI / TestPyPI and validate the artifacts
+twine>=5.0
+
+# Linting (mirrors the repo policy)
+ruff>=0.6

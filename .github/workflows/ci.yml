@@ -8,6 +8,7 @@
 #   1. The test suite passes on Python 3.10, 3.11 and 3.12.
 #   2. The linter and formatter are clean (ruff).
 #   3. The adapter imports work when the optional frameworks are absent.
+#   4. Shell scripts in scripts/ carry the executable bit.
 #
 # What it does NOT check (yet):
 #   - The framework adapters against real framework versions.
@@ -23,7 +24,6 @@ on:
   pull_request:
     branches: [main, master]
 
-# Cancel a running workflow if a new push arrives on the same ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -84,10 +84,6 @@ jobs:
   import-smoke:
     name: Import smoke test (no optional frameworks)
     runs-on: ubuntu-latest
-    # This job verifies a specific property: importing the SDK never
-    # fails because an optional framework is missing. The adapters use
-    # a guarded import and must not break the package when langchain,
-    # crewai, or agents are absent.
 
     steps:
       - name: Checkout
@@ -112,3 +108,27 @@ jobs:
           python -c "import pryxor.adapters.openai_agents"
           python -c "import pryxor.mcp.proxy"
           python -c "import pryxor.mcp.server"
+
+  scripts:
+    name: Scripts are executable
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify scripts are executable
+        run: |
+          set -e
+          shopt -s nullglob
+          files=(scripts/*.sh)
+          if (( ${#files[@]} == 0 )); then
+            echo "No scripts found under scripts/. Nothing to check."
+            exit 0
+          fi
+          for f in "${files[@]}"; do
+            if [ ! -x "$f" ]; then
+              echo "::error file=$f::script is not executable"
+              exit 1
+            fi
+          done

@@ -44,7 +44,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["F401", "F811", "F841", "E731"]  # unused imports/vars & lambda fixtures OK in tests
+"tests/*" = ["F401", "F811", "F841", "E731"]
+"conftest.py" = ["F401", "F811", "F841", "E731"]
 "scripts/*" = ["E402"]
 
 [tool.ruff.lint.isort]

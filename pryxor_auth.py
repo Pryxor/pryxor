@@ -13,14 +13,14 @@ vice versa.
 """
 
 from __future__ import annotations
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any
 
 import hashlib
 import hmac
 import secrets
 import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 
 KEY_BYTES = 32
 PBKDF2_ITERATIONS = 100_000

@@ -8,20 +8,25 @@ Pryxor — Proxy HTTP d'interception.
 """
 
 from __future__ import annotations
-from contextlib import _AsyncGeneratorContextManager
-from typing import Any, AsyncIterator, Optional
+
+import logging
+import os
+from contextlib import asynccontextmanager
+from typing import Any, Optional
+
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+
+import pryxor_metrics as metrics
 from pryxor_auth import AdminRegistry, AgentRegistry
 from pryxor_engine import PolicyEngine
 from pryxor_normalizer import normalize_tool_call
 from pryxor_paths import resolve_policy_path, resolve_state_path
 from pryxor_requestid import clear_request_id, get_request_id, set_request_id
-
-import pryxor_metrics as metrics
-import logging
-import os
 
 load_dotenv()  # loads .env automatically
 
@@ -32,28 +37,36 @@ logging.basicConfig(
 logger = logging.getLogger("pryxor.proxy")
 
 
-@_AsyncGeneratorContextManager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+# ======================================================================
+# Lifespan
+# ======================================================================
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Startup/shutdown hook.
+
+    The engine is constructed at import time (module-level singletons below).
+    This lifespan exists so FastAPI has a valid callable and so future
+    startup work (outbox recovery, connection warm-up) has a home that
+    does not require touching every call site.
+    """
+    logger.info("Pryxor proxy starting.")
     yield
-    # Clean shutdown of the workers (notification dispatch) on shutdown.
-    engine.stop_dispatch_worker()
+    logger.info("Pryxor proxy stopping.")
 
 
-app = FastAPI(
-    title="Pryxor — Runtime security for AI agents",
-    lifespan=lifespan,
-)
+# ======================================================================
+# Middlewares
+# ======================================================================
 
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request as StarletteRequest
-from starlette.responses import JSONResponse
 
 MAX_BODY_BYTES = int(os.environ.get("PRYXOR_MAX_BODY_BYTES", 64 * 1024))
 
 
 class BodySizeLimitMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: StarletteRequest, call_next):
-        # Check Content-Length when present
+    async def dispatch(self, request: Request, call_next):
         cl = request.headers.get("content-length")
         if cl is not None:
             try:
@@ -61,21 +74,27 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
                     return JSONResponse(
                         status_code=413,
                         content={
-                            "detail": (f"Request body too large. Max {MAX_BODY_BYTES} bytes.")
+                            "detail": (
+                                f"Request body too large. Max {MAX_BODY_BYTES} bytes."
+                            )
                         },
                     )
             except ValueError:
-                return JSONResponse(status_code=400, content={"detail": "Invalid Content-Length."})
+                return JSONResponse(
+                    status_code=400, content={"detail": "Invalid Content-Length."}
+                )
 
-        # Read the body to check the real size (guards against spoofed CL)
+        # Read the body to check the real size (guards against spoofed CL).
         body = await request.body()
         if len(body) > MAX_BODY_BYTES:
             return JSONResponse(
                 status_code=413,
-                content={"detail": (f"Request body too large. Max {MAX_BODY_BYTES} bytes.")},
+                content={
+                    "detail": (f"Request body too large. Max {MAX_BODY_BYTES} bytes.")
+                },
             )
 
-        # Re-inject the body so FastAPI can read it
+        # Re-inject the body so FastAPI can read it.
         async def receive():
             return {"type": "http.request", "body": body, "more_body": False}
 
@@ -83,19 +102,17 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-app.add_middleware(BodySizeLimitMiddleware)
-
-
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """
     Inject a request ID into every request.
+
     - Reuse `X-Request-ID` if present (useful for propagation).
     - Otherwise, generate one.
     - Put it into the logs via contextvars.
     - Return it in the response header.
     """
 
-    async def dispatch(self, request, call_next):
+    async def dispatch(self, request: Request, call_next):
         incoming = request.headers.get("X-Request-ID")
         request_id = set_request_id(incoming)
         try:
@@ -106,6 +123,12 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         return response
 
 
+app = FastAPI(
+    title="Pryxor — Runtime security for AI agents",
+    lifespan=lifespan,
+)
+
+app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(RequestIDMiddleware)
 
 STATE_PATH = resolve_state_path()
@@ -193,8 +216,6 @@ async def process_tool_call(
     if engine.rate_limiter is not None:
         decision = engine.rate_limiter.check(agent_id)
         if not decision["allowed"]:
-            import pryxor_metrics as metrics
-
             metrics.record_rate_limit_hit(decision["reason"])
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -287,7 +308,10 @@ async def approve_hold(
     admin_id: str = Depends(get_authenticated_admin),
 ) -> dict[str, Any]:
     logger.info(
-        "Approve |request_id=%s | admin=%s | action=%s", get_request_id(), admin_id, action_id
+        "Approve |request_id=%s | admin=%s | action=%s",
+        get_request_id(),
+        admin_id,
+        action_id,
     )
     return engine.approve_hold(action_id, actor_id=admin_id)
 
@@ -298,7 +322,10 @@ async def reject_hold(
     admin_id: str = Depends(get_authenticated_admin),
 ) -> dict[str, Any]:
     logger.info(
-        "Reject |request_id=%s | admin=%s | action=%s", get_request_id(), admin_id, action_id
+        "Reject |request_id=%s | admin=%s | action=%s",
+        get_request_id(),
+        admin_id,
+        action_id,
     )
     return engine.reject_hold(action_id, actor_id=admin_id)
 

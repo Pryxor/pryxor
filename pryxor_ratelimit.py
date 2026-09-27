@@ -18,11 +18,12 @@ Config (in configs/pryxor.json):
 """
 
 from __future__ import annotations
+
+import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-import sqlite3
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)

@@ -7,11 +7,12 @@ Pryxor — client CLI.
 """
 
 from __future__ import annotations
-from typing import Any
 
 import argparse
 import json
 import os
+from typing import Any
+
 import requests
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8000"

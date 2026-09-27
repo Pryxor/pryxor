@@ -5,12 +5,13 @@ Pryxor — admin CLI for key management (agents and admins).
 """
 
 from __future__ import annotations
-from pryxor_auth import AdminRegistry, AgentRegistry
 
 import argparse
 import json
 import os
 import sys
+
+from pryxor_auth import AdminRegistry, AgentRegistry
 
 # Must match the server's state DB. In Docker this is set via
 # PRYXOR_STATE_PATH (/data/pryxor_state.sqlite3); locally it defaults to a
