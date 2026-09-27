@@ -2,24 +2,24 @@
 #
 # Pryxor — SQLite backup script.
 #
-# Crée une copie cohérente de la base via `VACUUM INTO`.
-# Fonctionne même si Pryxor tourne (WAL mode activé).
+# Creates a consistent copy of the database via `VACUUM INTO`.
+# Works even if Pryxor is running (WAL mode enabled).
 #
-# Usage :
-#   bash scripts/backup.sh
-#   bash scripts/backup.sh --state /data/pryxor_state.sqlite3 --out /backup
-#   bash scripts/backup.sh --keep 30
+# Usage:
+# bash scripts/backup.sh
+# bash scripts/backup.sh --state /data/pryxor_state.sqlite3 --out /backup
+# bash scripts/backup.sh --keep 30
 #
-# Exit codes :
-#   0 = succès
-#   1 = erreur (DB absente, VACUUM échoué, etc.)
+# Exit codes:
+# 0 = success
+# 1 = error (DB missing, VACUUM failed, etc.)
 
 set -euo pipefail
 
 # --- Defaults ---------------------------------------------------------
 STATE_PATH="${PRYXOR_STATE_PATH:-./pryxor_state.sqlite3}"
 OUT_DIR="${PRYXOR_BACKUP_DIR:-./backups}"
-KEEP="${PRYXOR_BACKUP_KEEP:-14}"   # nombre de backups à conserver
+KEEP="${PRYXOR_BACKUP_KEEP:-14}"  
 COMPRESS=true
 
 # --- Parse args -------------------------------------------------------
@@ -40,7 +40,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# --- Vérifications ----------------------------------------------------
+# --- Verifications ----------------------------------------------------
 if [[ ! -f "$STATE_PATH" ]]; then
     echo "❌ State DB not found: $STATE_PATH" >&2
     exit 1
@@ -53,20 +53,20 @@ fi
 
 mkdir -p "$OUT_DIR"
 
-# --- Noms de fichiers -------------------------------------------------
-TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-BASE_NAME="pryxor_backup_${TIMESTAMP}"
-BACKUP_FILE="${OUT_DIR}/${BASE_NAME}.sqlite3"
+# --- Files names -------------------------------------------------
+TIMESTAMP=$(date -u +"%Y%m%dT%H%M%S")
+SUFFIX="$$"
+BACKUP="$OUT/pryxor_backup_${TIMESTAMP}_${SUFFIX}.sqlite3.gz"
 if [[ "$COMPRESS" == "true" ]]; then
     FINAL_FILE="${BACKUP_FILE}.gz"
 else
     FINAL_FILE="${BACKUP_FILE}"
 fi
 
-# --- Backup (VACUUM INTO — cohérent même sous charge) -----------------
+# --- Backup (VACUUM INTO) -----------------
 echo "▶ Backing up $STATE_PATH → $BACKUP_FILE"
 
-# Supprime un éventuel fichier préexistant (VACUUM INTO refuse d'écraser)
+# Delete an existing file (VACUUM INTO do not write on)
 rm -f "$BACKUP_FILE"
 
 sqlite3 "$STATE_PATH" "VACUUM INTO '$BACKUP_FILE';"
@@ -79,17 +79,16 @@ fi
 SIZE_BEFORE="$(du -h "$BACKUP_FILE" | cut -f1)"
 echo "  ✅ Snapshot: $SIZE_BEFORE"
 
-# --- Compression optionnelle ------------------------------------------
+# --- OPtional compression ------------------------------------------
 if [[ "$COMPRESS" == "true" ]]; then
     gzip -f "$BACKUP_FILE"
     SIZE_AFTER="$(du -h "$FINAL_FILE" | cut -f1)"
     echo "  ✅ Compressed: $SIZE_AFTER"
 fi
 
-# --- Rotation (conserve les N plus récents) ---------------------------
+# --- Rotation ---------------------------
 if [[ "$KEEP" -gt 0 ]]; then
     echo "▶ Rotating (keeping last $KEEP backups)"
-    # Trie par date (nom), supprime les plus anciens
     ls -1t "${OUT_DIR}"/pryxor_backup_*.sqlite3* 2>/dev/null \
         | tail -n "+$((KEEP + 1))" \
         | while read -r old; do
