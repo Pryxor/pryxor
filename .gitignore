@@ -9,8 +9,6 @@ data/
 *.sqlite3-shm
 docker-logs.txt
 pryxor_state.sqlite3
-requirements-dev.txt
-
 # Python
 __pycache__/
 *.py[cod]
