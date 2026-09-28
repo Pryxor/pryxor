@@ -157,7 +157,7 @@ is the decision, not the destination.
 
 ## 6. Look at the sector
 
-Open `configs/sectors/email.json`. This is the rule file: the file that
+Open `configs/sectors/email[declarative].json`. This is the rule file: the file that
 decides whether a call is APPROVED, HELD, or BLOCKED.
 
 ```json
