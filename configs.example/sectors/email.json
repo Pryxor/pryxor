@@ -1,9 +1,22 @@
 {
-  "type": "code",
-  "max_recipients": 3,
-  "allowed_domains": [
-    "company.com",
-    "internal.org"
-  ],
-  "blocked_subject_pattern": "(?i)password|secret|key|confidential"
+  "type": "declarative",
+  "description": "Demo policy used by QUICKSTART.md — approve internal, hold external.",
+  "rules": [
+    {
+      "name": "allow-internal-emails",
+      "when": {
+        "tool": "send_email",
+        "to_domain_in": ["company.local"]
+      },
+      "then": { "approve": true }
+    },
+    {
+      "name": "hold-external-emails",
+      "when": { "tool": "send_email" },
+      "then": {
+        "hold": "EXTERNAL_EMAIL",
+        "message": "External recipient requires human approval."
+      }
+    }
+  ]
 }
