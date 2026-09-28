@@ -1,5 +1,5 @@
 {
-  "sector": "finance",
+  "sector": "email",
   "hold_ttl_minutes": 60,
   "secrets": {
     "provider": "env"
