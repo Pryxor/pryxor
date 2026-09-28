@@ -1,0 +1,10 @@
+{
+  "type": "code",
+  "description": "Code-based email example — the original Python EmailSector. Kept alongside the declarative email.json for reference. To use it, point a tool's executor at \"sector\": \"email_code\" instead of \"email\".",
+  "max_recipients": 3,
+  "allowed_domains": [
+    "company.com",
+    "internal.org"
+  ],
+  "blocked_subject_pattern": "(?i)password|secret|key|confidential"
+}
