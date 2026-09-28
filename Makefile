@@ -6,7 +6,7 @@ SERVICE := pryxor
 ifeq ($(OS),Windows_NT)
     SHELL := C:/Program Files/Git/bin/bash.exe
     .SHELLFLAGS := -c
-	
+
 else
     SHELL := /bin/bash
     .SHELLFLAGS := -c
@@ -35,12 +35,12 @@ help:  # Show this help
 	@echo "  register        Register an agent (AGENT=my_agent)"
 	@echo "  register-admin  Register an admin (NAME=root)"
 	@echo "  agents          List registered agents"
-	@echo "  revoke      Revoke an agent key (AGENT=my_agent)"
-	@echo "  holds       List pending holds"
-	@echo "  approve     Approve a hold (ID=hold_xxx)"
-	@echo "  reject      Reject a hold (ID=hold_xxx)"
-	@echo "  audit       Show the audit log"
-	@echo "  executions  List recent executions"
+	@echo "  revoke          Revoke an agent key (AGENT=my_agent)"
+	@echo "  holds           List pending holds (needs PRYXOR_ADMIN_KEY)"
+	@echo "  approve         Approve a hold (ID=hold_xxx, needs PRYXOR_ADMIN_KEY)"
+	@echo "  reject          Reject a hold (ID=hold_xxx, needs PRYXOR_ADMIN_KEY)"
+	@echo "  audit           Show the audit log (needs PRYXOR_ADMIN_KEY)"
+	@echo "  executions      List recent executions (needs PRYXOR_ADMIN_KEY)"
 	@echo ""
 	@echo "Other:"
 	@echo "  test        Run the test suite locally (needs a Python venv)"
@@ -55,7 +55,7 @@ help:  # Show this help
 .PHONY: init
 init:  # Create .env and ./configs from templates (first-time setup)
 	@test -f .env || (cp .env.example .env && chmod 600 .env && echo "[ok] .env created (chmod 600)")
-	@test -d configs || (cp -r configs.example configs && echo "[ok] ./configs created")
+	@test -f configs/pryxor.json || (mkdir -p configs && cp -r configs.example/. configs/ && echo "[ok] ./configs created")
 	@echo "[!] Edit .env and configs/pryxor.json before 'make up'."
 
 .PHONY: build
@@ -110,30 +110,37 @@ revoke:  # Revoke an agent's key (usage: make revoke AGENT=my_agent)
 
 # --------------------------------------------------------------------
 # HOLD review
+#
+# All targets below talk to admin endpoints and require PRYXOR_ADMIN_KEY
+# in the CALLER's shell. `docker compose exec` does NOT forward host
+# environment variables, so we pass the key explicitly with `-e`.
 # --------------------------------------------------------------------
 .PHONY: holds
-holds:  # List pending HOLDs
-	$(COMPOSE) exec $(SERVICE) python pryxor_cli.py actions list
+holds:  # List pending HOLDs (needs PRYXOR_ADMIN_KEY)
+	@test -n "$$PRYXOR_ADMIN_KEY" || (echo "PRYXOR_ADMIN_KEY is not set in this shell. Export it first (see QUICKSTART step 11)." && exit 1)
+	$(COMPOSE) exec -e PRYXOR_ADMIN_KEY=$$PRYXOR_ADMIN_KEY $(SERVICE) python pryxor_cli.py actions list
 
 .PHONY: approve
-approve:  # Approve a HOLD (usage: make approve ID=hold_abc123)
+approve:  # Approve a HOLD (usage: make approve ID=hold_abc123, needs PRYXOR_ADMIN_KEY)
 	@test -n "$(ID)" || (echo "Usage: make approve ID=hold_abc123" && exit 1)
-	$(COMPOSE) exec $(SERVICE) python pryxor_cli.py actions approve $(ID)
+	@test -n "$$PRYXOR_ADMIN_KEY" || (echo "PRYXOR_ADMIN_KEY is not set in this shell. Export it first (see QUICKSTART step 11)." && exit 1)
+	$(COMPOSE) exec -e PRYXOR_ADMIN_KEY=$$PRYXOR_ADMIN_KEY $(SERVICE) python pryxor_cli.py actions approve $(ID)
 
 .PHONY: reject
-reject:  # Reject a HOLD (usage: make reject ID=hold_abc123)
+reject:  # Reject a HOLD (usage: make reject ID=hold_abc123, needs PRYXOR_ADMIN_KEY)
 	@test -n "$(ID)" || (echo "Usage: make reject ID=hold_abc123" && exit 1)
-	$(COMPOSE) exec $(SERVICE) python pryxor_cli.py actions reject $(ID)
+	@test -n "$$PRYXOR_ADMIN_KEY" || (echo "PRYXOR_ADMIN_KEY is not set in this shell. Export it first (see QUICKSTART step 11)." && exit 1)
+	$(COMPOSE) exec -e PRYXOR_ADMIN_KEY=$$PRYXOR_ADMIN_KEY $(SERVICE) python pryxor_cli.py actions reject $(ID)
 
 .PHONY: audit
-audit:  # Show the audit log
-	$(COMPOSE) exec $(SERVICE) python pryxor_cli.py audit list
+audit:  # Show the audit log (needs PRYXOR_ADMIN_KEY)
+	@test -n "$$PRYXOR_ADMIN_KEY" || (echo "PRYXOR_ADMIN_KEY is not set in this shell. Export it first (see QUICKSTART step 11)." && exit 1)
+	$(COMPOSE) exec -e PRYXOR_ADMIN_KEY=$$PRYXOR_ADMIN_KEY $(SERVICE) python pryxor_cli.py audit list
 
 .PHONY: executions
-executions:  # List recent executions
-	$(COMPOSE) exec $(SERVICE) python -c "import urllib.request,json; \
-		req=urllib.request.Request('http://127.0.0.1:8000/v1/executions'); \
-	print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))"
+executions:  # List recent executions (needs PRYXOR_ADMIN_KEY)
+	@test -n "$$PRYXOR_ADMIN_KEY" || (echo "PRYXOR_ADMIN_KEY is not set in this shell. Export it first (see QUICKSTART step 11)." && exit 1)
+	$(COMPOSE) exec -e PRYXOR_ADMIN_KEY=$$PRYXOR_ADMIN_KEY $(SERVICE) python pryxor_cli.py executions
 
 # --------------------------------------------------------------------
 # Debug
@@ -169,9 +176,10 @@ clean:  # Stop and remove volumes (DELETES ALL STATE)
 .PHONY: fclean
 fclean: clean  # Also remove the built image
 	-docker rmi pryxor:latest
-# ------------------
+
+# --------------------------------------------------------------------
 # BACKUP/RESTORE
-# ------------------
+# --------------------------------------------------------------------
 .PHONY: backup
 backup:  # Create a backup of the state DB
 	bash scripts/backup.sh
