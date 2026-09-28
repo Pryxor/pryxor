@@ -1,0 +1,5 @@
+{
+  "allowed_actions": {
+    "agent_smoke_01": ["send_payment"]
+  }
+}
