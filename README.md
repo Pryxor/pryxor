@@ -59,7 +59,7 @@ The same call, step by step, if you prefer text to a GIF.
 3. The policy says: external recipients are held.
 
         {"status": "HOLD",
-         "action_id": "hold_0eda8977",
+         "action_id": "hold_a4bdeee3",
          "reason": "EXTERNAL_EMAIL",
          "retry": false}
 
@@ -85,7 +85,7 @@ the model behaved.
 
 That is the whole system.
 
-**Want to run the same walkthrough yourself, in ten minutes?**
+**Want to run a different walkthroug yourself, in ten minutes?**
 → **[QUICKSTART.md](QUICKSTART.md)**
 
 ---
@@ -176,8 +176,7 @@ configs/
     └── email.json       # the rules
 ```
 
-The rules file is the interesting one. This is a real one — the policy
-running in the GIF above:
+The rules file is the interesting one:
 
 ```json
 {
