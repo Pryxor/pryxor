@@ -68,34 +68,24 @@ You will edit both in the next two steps.
 
 ## 3. Set the secrets
 
-Open `.env` in a text editor. For the demo policy, one secret is
-required: the token the executor uses when it calls a mail API.
+Open `.env` in a text editor.
 
+For the **email demo** used in this quickstart, **no secret is required**.
+The `send_email` executor posts to `httpbin.org` and does not use any
+credential.
+
+You can leave `.env` empty (or just keep the comments).  
+If you later switch to the finance sector (`send_payment`), you will need:
 ```
 BANK_API_TOKEN=replace_me_with_any_value
 ```
-
-The demo executor posts to `httpbin.org`, which ignores the token. Any
-non-empty value will do. In production this is where your real credential
-goes.
-
 Save the file and close the editor.
 
 ---
 
 ## 4. Point the policy at the demo
 
-Open `configs/pryxor.json`. It looks like this after `make init`:
-
-```json
-{
-  "sector": "finance",
-  "hold_ttl_minutes": 60,
-  "secrets": { "provider": "env" }
-}
-```
-
-Change `sector` to `email`:
+Open `configs/pryxor.json` and make sure the default sector is `email`:
 
 ```json
 {
@@ -105,18 +95,7 @@ Change `sector` to `email`:
 }
 ```
 
-Now open `configs/agents.json`:
-
-```json
-{
-  "allowed_actions": {
-    "agent_finance_01": ["send_payment"]
-  }
-}
-```
-
-Replace its contents with the agent we are about to register, and the
-tool it is allowed to call:
+Now open `configs/agents.json` and allow the agent we are about to register:
 
 ```json
 {
@@ -209,6 +188,8 @@ Rules run in order, and the first match wins. The first rule approves
 emails to `company.local`. The second holds everything else that reaches
 it. If the two rules were swapped, every email — including internal ones
 — would be held, because the second rule matches all of them.
+
+**« After `make init` these should already be correct. Just verify them. »**
 
 ---
 
