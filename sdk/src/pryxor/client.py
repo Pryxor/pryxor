@@ -206,7 +206,10 @@ class Pryxor:
                 timeout=self.timeout,
             )
         except requests.RequestException as e:
-            raise PryxorError(f"Pryxor unreachable at {self.base_url}: {e}") from e
+            raise PryxorError(
+                f"Pryxor unreachable at {self.base_url}: {e}. "
+            "For local Docker use: export PRYXOR_URL=http://127.0.0.1:8000"
+        ) from e
 
         if r.status_code == 401:
             raise PryxorAuthError("Invalid or revoked agent key.")
