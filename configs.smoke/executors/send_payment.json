@@ -1,0 +1,29 @@
+{
+  "type": "mock",
+  "sector": "finance",
+  "description": "Mock payment executor for smoke tests (no network).",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "amount": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "recipient": {
+        "type": "string"
+      },
+      "reference": {
+        "type": "string",
+        "maxLength": 140
+      }
+    },
+    "required": ["amount", "recipient"],
+    "additionalProperties": false
+  },
+  "mock_response": {
+    "success": true,
+    "transaction_id": "smoke-tx-001",
+    "amount": "{{ parameters.amount }}",
+    "recipient": "{{ parameters.recipient }}"
+  }
+}
