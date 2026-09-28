@@ -17,7 +17,7 @@ from ._framework.simple import SimpleSector
 
 
 class EmailSector(SimpleSector):
-    name = "email_code"
+    name = "email"
     version = "1.0.0"
 
     def decide(
