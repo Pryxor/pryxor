@@ -263,9 +263,8 @@ in your shell for the rest of this walkthrough:
 export PRYXOR_AGENT_KEY=pryxor_agent_ops_agent_xxxxxxxxxxxxxxxxxxxxxxxx
 export PRYXOR_URL=http://127.0.0.1:8000
 ```
-> **Windows (PowerShell):** use `$env:NAME = "value"` instead of `export NAME=value`.
+> On windows (poweshell) use: `$env:VAR = "value"` instead of `export VAR=value`
 ---
-
 ## 9. Send an internal email — should be approved
 
 ```bash
@@ -274,9 +273,9 @@ curl.exe -s http://127.0.0.1:8000/v1/execute-tool \
   -H "Content-Type: application/json" \
   -d '{"tool_name":"send_email",
        "parameters":{"to":"alice@company.local","subject":"Hi","body":"Hello."}}' \
-  | python -m json.tool
+  | python -m json.tool #remove this line if python is not installed
 ```
-> Prefer `curl.exe` (not the `curl` alias) or `Invoke-RestMethod`.
+> On windows (powershell) remove all the \ signs.
 
 Expected output, abridged:
 
@@ -321,8 +320,9 @@ curl -s http://127.0.0.1:8000/v1/execute-tool \
   -H "Content-Type: application/json" \
   -d '{"tool_name":"send_email",
        "parameters":{"to":"bob@external.com","subject":"Hi","body":"Hello."}}' \
-  | python -m json.tool
+  | python -m json.tool #remove this line if python is not installed
 ```
+> On windows (powershell) remove all the \ signs.
 
 Expected output:
 
@@ -380,20 +380,18 @@ Now approve the hold. Use the `action_id` from the previous step —
 `hold_0eda8977` in the example above:
 
 ```bash
-python -c "import os, requests; \
-  r = requests.post('http://127.0.0.1:8000/v1/holds/hold_0eda8977/approve', \
-                    headers={'X-Admin-Key': os.environ['PRYXOR_ADMIN_KEY']}); \
-  print(r.status_code); print(r.json())"
+make approve hold ID=hold_0eda8977
 ```
 
-If you have a local Python with `requests` installed, this is fine. If
+If you have Docker installed, this is fine. If
 not, use `curl`:
 
 ```bash
 curl -s -X POST http://127.0.0.1:8000/v1/holds/hold_0eda8977/approve \
   -H "X-Admin-Key: $PRYXOR_ADMIN_KEY" \
-  | python -m json.tool
+  | python -m json.tool #remove this line if python is not installed
 ```
+> On windows (powershell) remove all the \ signs.
 
 Expected output:
 
@@ -443,12 +441,19 @@ Two things to notice.
 ## 12. Look at the audit trail
 
 Everything that happened is recorded. List the last few audit events:
+Docker :
+```bash
+make audit
+```
+
+or use curl:
 
 ```bash
 curl -s "http://127.0.0.1:8000/v1/audit?limit=5" \
   -H "X-Admin-Key: $PRYXOR_ADMIN_KEY" \
-  | python -m json.tool
+  | python -m json.tool #remove this line if python is not installed
 ```
+> On windows (powershell) remove all the \ signs.
 
 You will see, for the hold we just approved:
 
