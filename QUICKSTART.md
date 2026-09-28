@@ -263,19 +263,20 @@ in your shell for the rest of this walkthrough:
 export PRYXOR_AGENT_KEY=pryxor_agent_ops_agent_xxxxxxxxxxxxxxxxxxxxxxxx
 export PRYXOR_URL=http://127.0.0.1:8000
 ```
-
+> **Windows (PowerShell):** use `$env:NAME = "value"` instead of `export NAME=value`.
 ---
 
 ## 9. Send an internal email — should be approved
 
 ```bash
-curl -s http://127.0.0.1:8000/v1/execute-tool \
+curl.exe -s http://127.0.0.1:8000/v1/execute-tool \
   -H "X-Agent-Key: $PRYXOR_AGENT_KEY" \
   -H "Content-Type: application/json" \
   -d '{"tool_name":"send_email",
        "parameters":{"to":"alice@company.local","subject":"Hi","body":"Hello."}}' \
   | python -m json.tool
 ```
+> Prefer `curl.exe` (not the `curl` alias) or `Invoke-RestMethod`.
 
 Expected output, abridged:
 
