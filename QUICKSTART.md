@@ -273,10 +273,22 @@ curl.exe -s http://127.0.0.1:8000/v1/execute-tool \
   -H "Content-Type: application/json" \
   -d '{"tool_name":"send_email",
        "parameters":{"to":"alice@company.local","subject":"Hi","body":"Hello."}}' \
-  | python -m json.tool #remove this line if python is not installed
+  | python -m json.tool
 ```
-> On windows (powershell) remove all the \ signs.
+**If you are on windows (powershell) use instead:**
 
+```powershell
+$body = @{
+  tool_name = "send_email"
+  parameters = @{ to = "alice@company.local"; subject = "Hi"; body = "Hello." }
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method POST `
+  -Uri "http://127.0.0.1:8000/v1/execute-tool" `
+  -Headers @{ "X-Agent-Key" = $env:PRYXOR_AGENT_KEY } `
+  -ContentType "application/json" `
+  -Body $body | ConvertTo-Json -Depth 10
+```
 Expected output, abridged:
 
 ```json
@@ -320,18 +332,30 @@ curl -s http://127.0.0.1:8000/v1/execute-tool \
   -H "Content-Type: application/json" \
   -d '{"tool_name":"send_email",
        "parameters":{"to":"bob@external.com","subject":"Hi","body":"Hello."}}' \
-  | python -m json.tool #remove this line if python is not installed
+  | python -m json.tool
 ```
-> On windows (powershell) remove all the \ signs.
+**On windows (powershell) copy instead:**
 
+```powershell
+$body = @{
+  tool_name = "send_email"
+  parameters = @{ to = "bob@external.com"; subject = "Hi"; body = "Hello." }
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method POST `
+  -Uri "http://127.0.0.1:8000/v1/execute-tool" `
+  -Headers @{ "X-Agent-Key" = $env:PRYXOR_AGENT_KEY } `
+  -ContentType "application/json" `
+  -Body $body | ConvertTo-Json -Depth 10
+```
 Expected output:
 
 ```json
 {
   "status": "HOLD",
-  "action_id": "hold_0eda8977",
+  "action_id": "hold_xxx",
   "reason": "EXTERNAL_EMAIL",
-  "message": "External recipient requires human approval. This action is pending human approval (action_id=hold_0eda8977). Do not retry.",
+  "message": "External recipient requires human approval. This action is pending human approval (action_id=hold_xxx). Do not retry.",
   "retry": false,
   "quarantine_payload": {
     "agent_id": "ops_agent",
@@ -344,6 +368,7 @@ Expected output:
   }
 }
 ```
+***The action_id from step 10 is unique to your run. Replace hold_XXXX below with the value you received — it looks like hold_a1b2c3d4.***
 
 The call did not go through. Nothing was sent to `bob@external.com`. It
 is sitting in Pryxor's store, waiting for a human. Note the
@@ -375,31 +400,38 @@ Copy it and export it in the same shell:
 ```bash
 export PRYXOR_ADMIN_KEY=pryxor_admin_root_xxxxxxxxxxxxxxxxxxxxxxxx
 ```
+> On windows (poweshell) use: `$env:VAR = "value"` instead of `export VAR=value`
 
 Now approve the hold. Use the `action_id` from the previous step —
-`hold_0eda8977` in the example above:
+`hold_xxx` in the example above:
 
 ```bash
-make approve hold ID=hold_0eda8977
+make approve hold ID=hold_xxx
 ```
 
 If you have Docker installed, this is fine. If
 not, use `curl`:
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/v1/holds/hold_0eda8977/approve \
+curl -s -X POST http://127.0.0.1:8000/v1/holds/hold_xxx/approve \
   -H "X-Admin-Key: $PRYXOR_ADMIN_KEY" \
-  | python -m json.tool #remove this line if python is not installed
+  | python -m json.tool
 ```
-> On windows (powershell) remove all the \ signs.
+**On windows (powershell) copy instead:**
+
+```powershell
+Invoke-RestMethod -Method POST `
+  -Uri "http://127.0.0.1:8000/v1/holds/hold_xxx/approve" `
+  -Headers @{ "X-Admin-Key" = $env:PRYXOR_ADMIN_KEY } | ConvertTo-Json -Depth 10
+```
 
 Expected output:
 
 ```json
 {
   "status": "APPROVED",
-  "action_id": "hold_0eda8977",
-  "message": "Hold hold_0eda8977 approved for execution.",
+  "action_id": "hold_xxx",
+  "message": "Hold hold_xxx approved for execution.",
   "approved_at": "2026-09-26T15:14:22.108431+00:00",
   "agent_id": "ops_agent",
   "tool_name": "send_email",
@@ -411,7 +443,7 @@ Expected output:
   },
   "execution": {
     "success": true,
-    "idempotency_key": "hold:hold_0eda8977",
+    "idempotency_key": "hold:hold_xxx",
     "status_code": 200,
     "result": {
       "json": {
@@ -431,7 +463,7 @@ Two things to notice.
 - `actor_id: "root"` — the admin who approved the call is recorded in
   the audit trail. If someone asks "who let this through", the answer
   is written down.
-- `execution.idempotency_key: "hold:hold_0eda8977"` — this time the
+- `execution.idempotency_key: "hold:hold_xxx"` — this time the
   key is derived from the hold's `action_id`, and is stable. If Pryxor
   restarts between the approval and the execution, the same key replays
   and the real endpoint does not see the action twice.
@@ -451,9 +483,15 @@ or use curl:
 ```bash
 curl -s "http://127.0.0.1:8000/v1/audit?limit=5" \
   -H "X-Admin-Key: $PRYXOR_ADMIN_KEY" \
-  | python -m json.tool #remove this line if python is not installed
+  | python -m json.tool
 ```
-> On windows (powershell) remove all the \ signs.
+**On windows (powershell) use instead:**
+
+```powershell
+Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8000/v1/audit?limit=5" `
+  -Headers @{ "X-Admin-Key" = $env:PRYXOR_ADMIN_KEY } | ConvertTo-Json -Depth 10
+```
 
 You will see, for the hold we just approved:
 
@@ -462,7 +500,7 @@ You will see, for the hold we just approved:
   "audit_events": [
     {
       "event_type": "approved",
-      "action_id": "hold_0eda8977",
+      "action_id": "hold_xxx",
       "agent_id": "ops_agent",
       "actor_id": "root",
       "created_at": "2026-09-26T15:14:22.108431+00:00",
@@ -474,7 +512,7 @@ You will see, for the hold we just approved:
     },
     {
       "event_type": "created",
-      "action_id": "hold_0eda8977",
+      "action_id": "hold_xxx",
       "agent_id": "ops_agent",
       "created_at": "2026-09-26T15:13:55.201847+00:00",
       "payload": {
