@@ -1,0 +1,12 @@
+{
+  "sector": "finance",
+  "hold_ttl_minutes": 60,
+  "secrets": { "provider": "env" },
+  "rate_limit": {
+    "enabled": false
+  },
+  "redaction": {
+    "enabled": true,
+    "default_mode": "REDACTED"
+  }
+}
