@@ -26,6 +26,7 @@ import os
 import sqlite3
 import threading
 import time
+import weakref
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -42,6 +43,41 @@ from pryxor_secrets import build_secret_provider
 from pryxor_validation import validate_arguments
 from sectors import Decision, DecisionStatus, load_sector
 
+# ---------------------------------------------------------------------------
+# Process-wide shutdown registration.
+#
+# Registering atexit.register(self.stop_dispatch_worker) inside every
+# PolicyEngine.__init__ leaks one strong reference per instance and grows the
+# atexit callback list linearly with the number of engines created (20+ in the
+# test suite). Instead we keep a WeakSet of live engines and register a single
+# process-wide callback the first time an engine is built.
+# ---------------------------------------------------------------------------
+_live_engines: "weakref.WeakSet[PolicyEngine]" = weakref.WeakSet()
+_shutdown_lock = threading.Lock()
+_shutdown_registered = False
+
+
+def _stop_all_live_engines() -> None:
+    """Stop every live PolicyEngine's dispatch worker.
+
+    Registered once per process. Uses a WeakSet, so engines that have already
+    been garbage-collected are skipped without us holding a reference to them.
+    """
+    for eng in list(_live_engines):
+        try:
+            eng.stop_dispatch_worker()
+        except Exception:
+            logger.debug("Failed to stop dispatch worker during shutdown.", exc_info=True)
+
+
+def _ensure_atexit_registered() -> None:
+    """Register the process-wide shutdown callback exactly once."""
+    global _shutdown_registered
+    with _shutdown_lock:
+        if _shutdown_registered:
+            return
+        _shutdown_registered = True
+        atexit.register(_stop_all_live_engines)
 logger = logging.getLogger("pryxor.engine")
 
 
@@ -835,9 +871,10 @@ class PolicyEngine:
         if enable_dispatch_worker:
             self._start_dispatch_worker()
 
-        # Clean shutdown at process exit (useful in CLI, tests, Docker)
-        atexit.register(self.stop_dispatch_worker)
-
+        # Register this engine for the process-wide shutdown. The callback
+        # itself is registered only once, no matter how many engines are built.
+        _live_engines.add(self)
+        _ensure_atexit_registered()
     def _referenced_sector_names(self, default_name: str) -> list[str]:
 
         # Collect every sector name referenced by the policy.
@@ -1389,9 +1426,16 @@ class PolicyEngine:
                 action_id = ev["action_id"]
                 params = json.loads(ev["parameters"])
 
+                # ⚠️ Route the callback to the sector that actually produced
+                # the decision for this tool — not the global default. Using
+                # self.sector here would notify the wrong sector whenever the
+                # tool is routed to a non-default sector (e.g. send_email →
+                # email sector while the default is finance).
+                sector = self._sector_for(ev["tool_name"])
+
                 if ev["event_type"] == "hold.approved":
-                    # 1) Notifie le secteur (idempotent)
-                    self.sector.on_hold_approved(
+                    # 1) Notify the sector (idempotent)
+                    sector.on_hold_approved(
                         ev["agent_id"],
                         ev["tool_name"],
                         params,
@@ -1407,7 +1451,7 @@ class PolicyEngine:
                         action_id=action_id,
                     )
                 elif ev["event_type"] == "hold.rejected":
-                    handler = getattr(self.sector, "on_hold_rejected", None)
+                    handler = getattr(sector, "on_hold_rejected", None)
                     if callable(handler):
                         handler(ev["agent_id"], ev["tool_name"], params, dedup_key=dedup_key)
 
