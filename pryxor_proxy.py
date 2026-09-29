@@ -13,7 +13,6 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from typing import Any, Optional
-
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
