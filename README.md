@@ -47,7 +47,7 @@ The same call, step by step, if you prefer text to a GIF.
 
         {"tool_name": "send_email",
          "parameters": {"to": "bob@external.com",
-                        "subject": "Quarterly update",
+                        "subject": "Point of view",
                         "body": "..."}}
 
 2. Pryxor intercepts the call.
@@ -70,13 +70,13 @@ The same call, step by step, if you prefer text to a GIF.
 
 5. A human approves the hold in the terminal.
 
-        $ python pryxor_cli.py actions approve hold_0eda8977
+        $ python pryxor_cli.py actions approve hold_a4bdeee3
 
 6. Only now does Pryxor perform the real action.
 
         {"status": "APPROVED",
          "execution": {"success": true, ...},
-         "actor_id": "root"}
+         "actor_id": "makan"}
 ```
 
 The agent never had the credential. It never saw the mail server's
