@@ -1,0 +1,20 @@
+{
+  "type": "http",
+  "method": "POST",
+  "url": "http://db:8002/drop",
+  "sector": "ops_danger",
+  "description": "Drop a production database. Destructive and irreversible. Requires human approval.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string", "minLength": 1 },
+      "confirmation": { "type": "string", "maxLength": 500 }
+    },
+    "required": ["name"],
+    "additionalProperties": false
+  },
+  "body": {
+    "name": "{{ parameters.name }}",
+    "confirmation": "{{ parameters.confirmation }}"
+  }
+}

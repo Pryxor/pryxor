@@ -1,6 +1,6 @@
 {
   "allowed_actions": {
-    "ops_agent": ["send_email"],
+    "ops_agent": ["send_email", "drop_database"],
     "agent_finance_01": ["send_payment"]
   }
 }

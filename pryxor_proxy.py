@@ -88,7 +88,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
             )
 
         # Re-inject the body so FastAPI can read it.
-        async def receive():
+        def receive():
             return {"type": "http.request", "body": body, "more_body": False}
 
         request._receive = receive
@@ -152,7 +152,7 @@ class ToolCallPayload(BaseModel):
 # ======================================================================
 
 
-async def get_authenticated_agent(
+def get_authenticated_agent(
     x_agent_key: Optional[str] = Header(default=None, alias="X-Agent-Key"),
 ) -> str:
     if not x_agent_key:
@@ -171,7 +171,7 @@ async def get_authenticated_agent(
     return agent_id
 
 
-async def get_authenticated_admin(
+def get_authenticated_admin(
     x_admin_key: Optional[str] = Header(default=None, alias="X-Admin-Key"),
 ) -> str:
     if not x_admin_key:
@@ -201,7 +201,7 @@ async def health() -> dict[str, Any]:
 
 
 @app.post("/v1/execute-tool")
-async def process_tool_call(
+def process_tool_call(
     payload: ToolCallPayload,
     agent_id: str = Depends(get_authenticated_agent),
     idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key"),
@@ -247,7 +247,7 @@ async def process_tool_call(
 
 
 @app.get("/v1/holds")
-async def list_holds(
+def list_holds(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     admin_id: str = Depends(get_authenticated_admin),
@@ -262,7 +262,7 @@ async def list_holds(
 
 
 @app.get("/v1/holds/{action_id}")
-async def get_hold(
+def get_hold(
     action_id: str,
     admin_id: str = Depends(get_authenticated_admin),
 ) -> dict[str, Any]:
@@ -278,7 +278,7 @@ async def get_hold(
 
 
 @app.get("/v1/audit")
-async def list_audit(
+def list_audit(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     admin_id: str = Depends(get_authenticated_admin),
@@ -293,7 +293,7 @@ async def list_audit(
 
 
 @app.post("/v1/holds/{action_id}/approve")
-async def approve_hold(
+def approve_hold(
     action_id: str,
     admin_id: str = Depends(get_authenticated_admin),
 ) -> dict[str, Any]:
@@ -307,7 +307,7 @@ async def approve_hold(
 
 
 @app.post("/v1/holds/{action_id}/reject")
-async def reject_hold(
+def reject_hold(
     action_id: str,
     admin_id: str = Depends(get_authenticated_admin),
 ) -> dict[str, Any]:
@@ -321,7 +321,7 @@ async def reject_hold(
 
 
 @app.get("/v1/executions")
-async def list_executions(
+def list_executions(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     admin_id: str = Depends(get_authenticated_admin),
@@ -335,7 +335,7 @@ async def list_executions(
 
 
 @app.get("/v1/notifications")
-async def list_notifications(
+def list_notifications(
     limit: int = 100,
     admin_id: str = Depends(get_authenticated_admin),
 ) -> dict[str, Any]:
@@ -343,7 +343,7 @@ async def list_notifications(
 
 
 @app.post("/v1/notifications/dispatch")
-async def dispatch_notifications(
+def dispatch_notifications(
     admin_id: str = Depends(get_authenticated_admin),
 ) -> dict[str, Any]:
     """

@@ -41,6 +41,7 @@ from pryxor_redaction import build_redactor
 from pryxor_requestid import get_request_id
 from pryxor_secrets import build_secret_provider
 from pryxor_validation import validate_arguments
+from pryxor_crypto import PayloadCipher
 from sectors import Decision, DecisionStatus, load_sector
 
 # ---------------------------------------------------------------------------
@@ -84,9 +85,7 @@ logger = logging.getLogger("pryxor.engine")
 DEFAULT_POLICY: dict[str, Any] = {
     "sector": "finance",
     "hold_ttl_minutes": 60,
-    "allowed_actions": {
-        "agent_finance_01": ["send_payment"],
-    },
+    "allowed_actions": {},
     "sectors": {
         "finance": {
             "max_single_transaction": 500.0,
@@ -156,6 +155,7 @@ class HoldStore:
                     agent_id      TEXT NOT NULL,
                     tool_name     TEXT NOT NULL,
                     parameters    TEXT NOT NULL,
+                    params_enc    TEXT,
                     reason        TEXT NOT NULL,
                     message       TEXT NOT NULL,
                     created_at    TEXT NOT NULL,
@@ -193,6 +193,7 @@ class HoldStore:
                     agent_id      TEXT NOT NULL,
                     tool_name     TEXT NOT NULL,
                     parameters    TEXT NOT NULL,
+                    params_enc    TEXT,
                     created_at    TEXT NOT NULL,
                     processed_at  TEXT
                 )
@@ -231,6 +232,11 @@ class HoldStore:
                 conn.execute("ALTER TABLE audit_events ADD COLUMN actor_id TEXT")
                 logger.info("Migrated: added audit_events.actor_id column.")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_events(actor_id)")
+            for table in ("holds", "outbox_events"):
+                cols = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+                if "params_enc" not in cols:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN params_enc TEXT")
+                    logger.info("Migrated: added %s.params_enc column.", table)
 
             conn.commit()
 
@@ -275,7 +281,7 @@ class HoldStore:
             row = conn.execute("SELECT * FROM holds WHERE action_id = ?", (action_id,)).fetchone()
         return self._row_to_dict(row)
 
-    def _record_audit(
+    def record_audit(
         self,
         action_id: str | None,
         agent_id: str | None,
@@ -413,24 +419,31 @@ class HoldStore:
         parameters: dict[str, Any],
         reason: str,
         message: str,
+        *,
+        real_parameters: dict[str, Any] | None = None,  # real, encrypted
+        cipher: "PayloadCipher | None" = None,
     ) -> dict[str, Any]:
         action_id = f"hold_{uuid4().hex[:8]}"
         created_at = utcnow_iso()
         expires_at = (datetime.now(timezone.utc) + timedelta(minutes=self.ttl_minutes)).isoformat()
+        params_enc = None
+        if real_parameters is not None and cipher is not None:
+            params_enc = cipher.encrypt(real_parameters)
 
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT INTO holds(
-                    action_id, status, agent_id, tool_name, parameters, reason,
+                    action_id, status, agent_id, tool_name, parameters, params_enc, reason,
                     message, created_at, expires_at, updated_at
-                ) VALUES (?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     action_id,
                     agent_id,
                     tool_name,
                     json.dumps(parameters, ensure_ascii=False),
+                    params_enc,
                     reason,
                     message,
                     created_at,
@@ -502,8 +515,8 @@ class HoldStore:
                     """
                     INSERT INTO outbox_events(
                         event_type, action_id, agent_id, tool_name,
-                        parameters, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?)
+                        parameters, params_enc, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         f"hold.{new_status.lower()}",
@@ -511,31 +524,28 @@ class HoldStore:
                         row["agent_id"],
                         row["tool_name"],
                         row["parameters"],
+                        row["params_enc"],  # encrypted real (may be NULL on legacy rows)
                         now,
                     ),
                 )
 
-                # ⚠️ The audit now records the actor
                 audit_payload: dict[str, Any] = {timestamp_field: now}
                 if actor_id:
                     audit_payload["actor_id"] = actor_id
                     audit_payload["actor_type"] = "admin"
 
-                    conn.execute(
-                        """
+                # Always write an audit row. `actor_id` may be NULL (e.g. an
+                # expiration path with no human), but the transition must still be
+                # recorded — that is the whole point of the audit trail.
+                conn.execute(
+                    """
                     INSERT INTO audit_events(
                         action_id, agent_id, event_type, payload, created_at, actor_id
                     ) VALUES (?, ?, ?, ?, ?, ?)
                     """,
-                        (
-                            action_id,
-                            row["agent_id"],
-                            audit_event_type,
-                            json.dumps(audit_payload, ensure_ascii=False),
-                            now,
-                            actor_id,
-                        ),
-                    )
+                    (action_id, row["agent_id"], audit_event_type,
+                    json.dumps(audit_payload, ensure_ascii=False), now, actor_id),
+                )
                 conn.commit()
                 metrics.record_hold_transition(new_status.lower())
                 response: dict[str, Any] = {
@@ -805,6 +815,8 @@ class PolicyEngine:
             state_path=self.state_path,
         )
 
+        self.cipher = PayloadCipher()
+
         # GATEWAY : secrets + executors
         self.secrets = build_secret_provider(self.policy)
 
@@ -955,12 +967,29 @@ class PolicyEngine:
             client_idempotency_key=client_idempotency_key,
         )
         elapsed = time.monotonic() - start
+        # Bound label cardinality. `tool_name` is caller-controlled; without
+        # this bound, an agent can create one time series per probe string.
+        known_tools = set(self.policy.get("executors", {}).keys())
         metrics.record_tool_call(
             status=result.get("status", "UNKNOWN"),
-            tool=tool_name or "unknown",
+            tool=tool_name if tool_name in known_tools else "other",
             agent=agent_id or "unknown",
             duration=elapsed,
         )
+        # Every decision is audited. HOLD is audited at creation time by
+        # HoldStore.create(); the other three are audited here.
+        status = result.get("status", "UNKNOWN")
+        if status in ("APPROVED", "BLOCKED", "EXECUTION_FAILED"):
+            self.hold_store.record_audit(
+                action_id=None,
+                agent_id=agent_id,
+                event_type=status.lower(),
+                payload={
+                    "tool_name": tool_name,
+                    "reason": result.get("reason", ""),
+                    "parameters": self.redactor.redact(tool_name, parameters or {}),
+                },
+            )
         return result
 
     def _evaluate_inner(self, agent_id, tool_name, parameters, *, client_idempotency_key=None):
@@ -982,21 +1011,15 @@ class PolicyEngine:
             parameters = {}
 
         # --- Authorization ------------------------------------------------
-        # We distinguish two cases internally (for the audit) but return a
-        # generic message to the agent, so we never reveal which tools exist.
-        known_tools = set(self.policy.get("executors", {}).keys()) | set(
-            self.policy.get("allowed_actions", {}).get(agent_id, [])
-        )
         allowed_actions = self.policy.get("allowed_actions", {})
         if tool_name not in allowed_actions.get(agent_id, []):
-            reason = (
-                "AGENT_NOT_AUTHORIZED_FOR_TOOL" if tool_name in known_tools else "UNSUPPORTED_TOOL"
-            )
+            # Single generic reason on purpose: distinguishing "unknown tool"
+            # from "known but not allowed" is a side channel that lets an agent
+            # enumerate the tool catalog one probe at a time.
             return {
-                "status": "BLOCKED",
-                "reason": reason,
-                # Generic message on purpose — do not leak the tool catalog.
-                "message": "This tool call is not authorized.",
+            "status": "BLOCKED",
+            "reason": "NOT_AUTHORIZED",
+            "message": "This tool call is not authorized.",
             }
 
         # --- Argument validation ------------------------------------------
@@ -1087,7 +1110,7 @@ class PolicyEngine:
                 "action_id": hold_result["action_id"],
                 "agent_id": agent_id,
                 "tool_name": tool_name,
-                "parameters": parameters,
+                "parameters": self.redactor.redact(tool_name, parameters),
                 "reason": decision.reason,
                 "message": decision.message,
                 "created_at": utcnow_iso(),
@@ -1096,17 +1119,17 @@ class PolicyEngine:
         self._dispatch_notification_batch()
         return hold_result
 
-    def _hold(
-        self,
-        agent_id: str,
-        tool_name: str,
-        parameters: dict[str, Any],
-        reason: str,
-        message: str,
-        metadata: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    def _hold(self, agent_id, tool_name, parameters, reason, message, metadata=None):
         redacted_params = self.redactor.redact(tool_name, parameters)
-        hold = self.hold_store.create(agent_id, tool_name, redacted_params, reason, message)
+        hold = self.hold_store.create(
+            agent_id,
+            tool_name,
+            redacted_params,
+            reason,
+            message,
+            real_parameters=parameters,
+            cipher=self.cipher,
+        )
         return {
             "status": "HOLD",
             "action_id": hold["action_id"],
@@ -1424,7 +1447,13 @@ class PolicyEngine:
             try:
                 dedup_key = f"outbox:{event_id}"
                 action_id = ev["action_id"]
-                params = json.loads(ev["parameters"])
+                ev_keys = ev.keys()
+                if "params_enc" in ev_keys and ev["params_enc"]:
+                    params = self.cipher.decrypt(ev["params_enc"])
+                else:
+                    # Legacy row (created before the fix). Fall back to the redacted
+                    # copy — the behaviour is degraded but not silently wrong.
+                    params = json.loads(ev["parameters"])
 
                 # ⚠️ Route the callback to the sector that actually produced
                 # the decision for this tool — not the global default. Using

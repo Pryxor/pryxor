@@ -1,0 +1,13 @@
+{
+  "type": "declarative",
+  "rules": [
+    {
+      "name": "hold-every-database-drop",
+      "when": { "tool": "drop_database" },
+      "then": {
+        "hold": "DESTRUCTIVE_IRREVERSIBLE_ACTION",
+        "message": "Dropping a production database is irreversible. A human must approve this action."
+      }
+    }
+  ]
+}

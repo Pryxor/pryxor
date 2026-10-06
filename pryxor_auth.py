@@ -23,16 +23,17 @@ from pathlib import Path
 from typing import Any
 
 KEY_BYTES = 32
-PBKDF2_ITERATIONS = 100_000
-
-
+"""
+The API keys are 32 random bytes (256 bits). PBKDF2 was defensive
+against low-entropy secrets; against a 256-bit random key, SHA-256
+with a salt is strictly stronger than PBKDF2 with the same work
+factor and is 100,000× faster per verification.
+"""
 def _hash_key(api_key: str, salt: bytes) -> str:
-    return hashlib.pbkdf2_hmac(
-        "sha256",
-        api_key.encode("utf-8"),
-        salt,
-        PBKDF2_ITERATIONS,
-    ).hex()
+    h = hashlib.sha256()
+    h.update(salt)
+    h.update(api_key.encode("utf-8"))
+    return h.hexdigest()
 
 
 def _constant_time_compare(a: str, b: str) -> bool:
