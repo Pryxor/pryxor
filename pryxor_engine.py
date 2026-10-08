@@ -34,6 +34,7 @@ from uuid import uuid4
 
 import pryxor_metrics as metrics
 from pryxor_config import load_config
+from pryxor_crypto import PayloadCipher
 from pryxor_executors import ExecutionResult, build_executor_registry
 from pryxor_notifiers import NotificationStore, build_notifier_registry, routes_for_event
 from pryxor_ratelimit import RateLimiter
@@ -41,7 +42,6 @@ from pryxor_redaction import build_redactor
 from pryxor_requestid import get_request_id
 from pryxor_secrets import build_secret_provider
 from pryxor_validation import validate_arguments
-from pryxor_crypto import PayloadCipher
 from sectors import Decision, DecisionStatus, load_sector
 
 # ---------------------------------------------------------------------------

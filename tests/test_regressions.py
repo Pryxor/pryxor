@@ -24,7 +24,6 @@ import pytest
 
 from pryxor_engine import PolicyEngine
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -182,9 +181,9 @@ def test_rate_limit_returns_429(tmp_path, monkeypatch):
     HTTP 429 with the documented headers. A regression here (Ellipsis in
     the raise) produced a 500 with no actionable detail.
     """
-    from fastapi.testclient import TestClient
-
     import importlib
+
+    from fastapi.testclient import TestClient
 
     state = tmp_path / f"state_{uuid4().hex}.sqlite3"
     monkeypatch.setenv("PRYXOR_STATE_PATH", str(state))
