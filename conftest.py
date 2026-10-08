@@ -46,6 +46,20 @@ if SDK_SRC.is_dir() and str(SDK_SRC) not in sys.path:
 # any test constructs a PolicyEngine).
 os.environ.setdefault("PRYXOR_DISPATCH_WORKER", "0")
 
+# --- 1b. Test-only encryption key for PayloadCipher ------------------------
+# The cipher refuses to construct without PRYXOR_ENCRYPTION_KEY, and
+# pryxor_proxy.py instantiates PolicyEngine at import time. Without this,
+# every test that imports the proxy fails during collection.
+#
+# This key is intentionally public: it protects nothing real. It exists
+# only to exercise the encrypt/decrypt code path in the test suite.
+import base64 as _b64
+
+_TEST_ENCRYPTION_KEY = _b64.urlsafe_b64encode(
+    b"pryxor-test-key-0123456789abcdef"  # exactly 32 bytes
+).decode()
+os.environ.setdefault("PRYXOR_ENCRYPTION_KEY", _TEST_ENCRYPTION_KEY)
+
 # Engines created during a test, so we can stop their workers in teardown.
 _ENGINES: list = []
 

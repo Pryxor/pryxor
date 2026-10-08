@@ -79,6 +79,8 @@ If you later switch to the finance sector (`send_payment`), you will need:
 ```
 BANK_API_TOKEN=replace_me_with_any_value
 ```
+>The make init step generated a PRYXOR_ENCRYPTION_KEY in your .env. This key encrypts the real parameters of held actions. If you lose it, old holds become unreadable. Save it alongside your other secrets.
+
 Save the file and close the editor.
 
 ---

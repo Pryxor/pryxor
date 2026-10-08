@@ -112,6 +112,8 @@ Secrets referenced by `secret_ref` in executors **must be present in the
 container environment**. The `env_file` entry in the compose file is
 where they come from.
 
+| `PRYXOR_ENCRYPTION_KEY` | — | Fernet key (32 bytes, base64-urlsafe). Encrypts the real parameters of held actions at rest. **Required.** If it changes, old holds become unreadable. Generate with `python -c "import base64,secrets; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())"`. |
+
 ### 1.5 — Running without Docker
 
 If you cannot use Docker, Pryxor runs as a normal Python service.

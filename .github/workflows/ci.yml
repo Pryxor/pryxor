@@ -55,6 +55,10 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Run the test suite
+        env:
+          # Test-only key. Same value as the one set in conftest.py.
+          # Not a secret — protects nothing real. See conftest.py for context.
+          PRYXOR_ENCRYPTION_KEY: cHJ5eG9yLXRlc3Qta2V5LTAxMjM0NTY3ODlhYmNkZWY=
         run: |
           python -m pytest tests/ -q
 

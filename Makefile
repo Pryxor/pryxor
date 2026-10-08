@@ -56,6 +56,8 @@ help:  # Show this help
 init:  # Create .env and ./configs from templates (first-time setup)
 	@test -f .env || (cp .env.example .env && chmod 600 .env && echo "[ok] .env created (chmod 600)")
 	@test -f configs/pryxor.json || (mkdir -p configs && cp -r configs.example/. configs/ && echo "[ok] ./configs created")
+	@grep -q "^PRYXOR_ENCRYPTION_KEY=." .env 2>/dev/null || \
+		(printf "PRYXOR_ENCRYPTION_KEY=%s\n" "$$(python -c 'import base64,secrets; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())')" >> .env && echo "[ok] PRYXOR_ENCRYPTION_KEY generated")
 	@echo "[!] Edit .env and configs/pryxor.json before 'make up'."
 
 .PHONY: build
