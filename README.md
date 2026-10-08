@@ -1,6 +1,17 @@
-# Pryxor
-
-## Runtime authorization for AI agent actions
+<div>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo-light.png">
+    <img src="assets/logo-light.png" alt="Pryxor" width="420">
+  </picture>
+  <h1>Pryxor</h1>
+  <p><strong>Runtime authorization for AI agent actions</strong><p>
+  <p>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-cyan" alt="License: Apache 2.0"></a>
+    <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+"></a>
+    <a href="KNOWN_LIMITATIONS.md"><img src="https://img.shields.io/badge/status-early--stage-yellow" alt="Status: early-stage"></a>
+  </p>
+</div>
 
 AI agents often have valid credentials and still perform the wrong action.
 
@@ -11,6 +22,10 @@ Pryxor is a self-hosted runtime gateway that evaluates an agent's **concrete act
 The agent proposes.  
 Pryxor decides.  
 A trusted executor acts.
+
+## Demo
+![Pryxor demo](assets/demo-video.gif)
+---
 
 Pryxor can:
 
@@ -81,6 +96,8 @@ A HOLD is not a retryable error. The agent must not simply submit the same actio
 ### Try the demo
 
 The demo uses a simulated HTTP endpoint. It does not send a real email.
+
+**See the [QUICKSTART.md](QUICKSTART.md)** for the full walkthroug.
 
 **Requirements:**
 
