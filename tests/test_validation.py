@@ -139,20 +139,30 @@ def test_engine_blocks_smuggled_field(engine):
     assert any("bcc" in e for e in r["errors"])
 
 
-def test_unknown_tool_reason(engine):
-    r = engine.evaluate("agent_finance_01", "delete_database", {})
-    assert r["status"] == "BLOCKED"
-    assert r["reason"] == "UNSUPPORTED_TOOL"
+def test_unauthorized_and_unknown_tool_share_a_reason(engine):
+    """
+    Both an unknown tool and a known-but-unauthorized tool return the same
+    reason. This is deliberate: distinguishing them would let an agent
+    enumerate the tool catalog by probing one name at a time.
 
+    The distinction is preserved internally (in the audit trail), not in
+    the agent-facing response.
+    """
+    # Unknown tool: not in executors, not in allowed_actions.
+    r_unknown = engine.evaluate("agent_finance_01", "delete_database", {})
+    assert r_unknown["status"] == "BLOCKED"
+    assert r_unknown["reason"] == "NOT_AUTHORIZED"
+    assert r_unknown["message"] == "This tool call is not authorized."
 
-def test_unauthorized_tool_reason(engine):
-    # 'send_email' is a known tool in other configs; here it is not in the
-    # agent's allowlist, so the reason differs from a truly unknown tool.
-    r = engine.evaluate("agent_finance_01", "send_payment", {"amount": 1})  # well-formed but
-    # send_payment IS authorized; use a tool that exists but is not allowed:
-    r2 = engine.evaluate("agent_finance_01", "http_test", {})
-    assert r2["status"] == "BLOCKED"
-    assert r2["reason"] == "UNSUPPORTED_TOOL"
+    # Known tool (it exists in some configs), not in this agent's allowlist.
+    r_unauthorized = engine.evaluate("agent_finance_01", "http_test", {})
+    assert r_unauthorized["status"] == "BLOCKED"
+    assert r_unauthorized["reason"] == "NOT_AUTHORIZED"
+    assert r_unauthorized["message"] == "This tool call is not authorized."
+
+    # The two responses must be indistinguishable — no length difference,
+    # no field difference, no different message.
+    assert r_unknown == r_unauthorized
 
 
 def test_agent_message_does_not_leak_tool_catalog(engine):

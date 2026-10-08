@@ -127,10 +127,14 @@ def test_engine_delegates_to_sector(engine):
 
 
 def test_engine_blocks_unauthorized_tool(engine):
-    """The tool whitelist is handled by the engine, not the sector."""
+    """The tool whitelist is handled by the engine, not the sector.
+
+    The reason is intentionally generic. See tests/test_validation.py for
+    the full rationale.
+    """
     r = engine.evaluate("agent_finance_01", "delete_database", {})
     assert r["status"] == "BLOCKED"
-    assert r["reason"] == "UNSUPPORTED_TOOL"
+    assert r["reason"] == "NOT_AUTHORIZED"
 
 
 def test_engine_holds_on_sector_decision(engine):

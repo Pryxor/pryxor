@@ -117,9 +117,11 @@ def test_pryxor_proxy_ignores_payload_agent_id(fresh_app):
     data = r.json()
     # Bob does not have send_payment → BLOCKED. The spoofing failed.
     assert data["status"] == "BLOCKED"
-    # The tool exists in the policy, but Bob is not authorized for it —
-    # the reason distinguishes that from a genuinely unknown tool.
-    assert data["reason"] == "AGENT_NOT_AUTHORIZED_FOR_TOOL"
+    # The reason is deliberately generic: distinguishing "unknown tool"
+    # from "known but unauthorized" would let an agent probe for the
+    # tool catalog one call at a time. The distinction lives only in
+    # the operator-facing audit, never in the agent-facing response.
+    assert data["reason"] == "NOT_AUTHORIZED"
 
 
 def test_engine_requires_agent_id(fresh_app):

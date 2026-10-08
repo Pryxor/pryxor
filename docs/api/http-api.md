@@ -117,15 +117,13 @@ or rejects it, and the result is visible in `/v1/executions`.
   "message": "This tool call is not authorized."
 }
 ```
-
-Common `reason` values:
+common reason value
 
 | Reason | Meaning |
 |---|---|
-| `UNSUPPORTED_TOOL` | The agent is not allowed to call this tool. |
-| `AGENT_NOT_AUTHORIZED_FOR_TOOL` | The tool exists but this agent may not call it. |
+| `NOT_AUTHORIZED` | The agent is not allowed to call this tool. The same reason is returned whether the tool exists or not — deliberately, so an agent cannot enumerate the tool catalog. |
 | `INVALID_TOOL_CALL` | No tool name could be extracted. |
-| `INVALID_ARGUMENTS` | Arguments failed the executor's JSON Schema (a short `errors` list is included). |
+| `INVALID_ARGUMENTS` | Arguments failed the executor's JSON Schema. |
 | `MISSING_AGENT_IDENTITY` | No authenticated identity (internal guard). |
 | Sector reasons | e.g. `RECIPIENT_NOT_WHITELISTED`, `VELOCITY_LIMIT_EXCEEDED`, … |
 

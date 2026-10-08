@@ -85,5 +85,19 @@ The first public release: a working runtime security core, usable on a single no
 See [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md). This release is designed for a
 single protected node, not yet a multi-tenant, high-availability platform.
 
+### Changed
+
+- **Blocked responses use a single generic reason.** `UNSUPPORTED_TOOL` and
+  `AGENT_NOT_AUTHORIZED_FOR_TOOL` are replaced by `NOT_AUTHORIZED`. The
+  distinction was a side channel that let an agent probe for the tool catalog
+  one call at a time. The distinction remains in the audit trail, not in the
+  agent-facing response.
+- **API keys are hashed with SHA-256 instead of PBKDF2.** Keys are 256-bit
+  random values; PBKDF2 was defensive against low-entropy secrets it never
+  saw. Verification is now ~100,000× faster per request.
+- **Real hold parameters are encrypted at rest.** The `parameters` column is
+  redacted for display; the `params_enc` column holds the real, unredacted
+  values, encrypted with a Fernet key. Requires `PRYXOR_ENCRYPTION_KEY`.
+
 [Unreleased]: https://github.com/Pryxor/pryxor/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Pryxor/pryxor/releases/tag/v0.1.0
